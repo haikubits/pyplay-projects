@@ -18,13 +18,13 @@ class SlidingWindowVWAP:
         
         while q and q[0][0] <= cutoff:
             ts, price, volume = q.popleft()
-            self._rolling_dollar_volume -= price*volume
-            self._rolling_volume -= volume
+            self._rolling_dollar_volume[symbol] -= price*volume
+            self._rolling_volume[symbol] -= volume
         
         if not q:
-            del self._symbols_queues[symbol]
-            del self._rolling_dollar_volume[symbol]
-            del self._volume[symbol]
+            self._symbols_queues.pop(symbol, None)
+            self._rolling_dollar_volume.pop(symbol, None)
+            self._rolling_volume.pop(symbol, None)
     
     def add_tick(self, timestamp_ms: int, symbol: str, price: float, volume: int) -> None:
         if volume <= 0:
@@ -34,8 +34,8 @@ class SlidingWindowVWAP:
         self._evict_stale_ticks(symbol, timestamp_ms)
         
         self._symbols_queues[symbol].append((timestamp_ms, price, volume))
-        self._rolling_dollar_volume += price*volume
-        self._rolling_volume += volume
+        self._rolling_dollar_volume[symbol] += price*volume
+        self._rolling_volume[symbol] += volume
     
     def get_vwap(self, symbol: str, current_time_ms: int) -> Optional[float]:
         if symbol not in self._symbols_queues:
