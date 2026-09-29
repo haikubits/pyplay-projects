@@ -21,19 +21,9 @@ class OrderMatchingEngine:
         self.order_sequence = 0
         self.active_orders = {}
     
-    def _purge_inactive(self):
-        while self.asks and self.asks[0]:
-            _,_, order_id, _, _ = self.asks[0]
-            if order_id in self.active_orders and not self.active_orders[order_id]:
-                heapq.heappop(self.asks)
-            else:
-                break
-        while self.bids and self.bids[0]:
-            _,_,order_id,_,_ = self.bids[0]
-            if order_id in self.active_orders and not self.active_orders[order_id]:
-                heapq.heappop(self.bids)
-            else:
-                break
+    def _purge_inactive(self, heap: List[Tuple]) -> None:
+        while heap and not self.active_orders.get(heap[0][2], False):
+            heapq.heappop(heap)
 
     def add_order(self, client_id: str, side: str, price: float, quantity: int) -> Tuple[int, List[Trade]]:
         self.order_sequence += 1
@@ -44,5 +34,14 @@ class OrderMatchingEngine:
         if side.upper() == "BUY":
             # check for any matching orders on top of the heap, (first purge inactive orders) if found, match quantities and execute it fully or partially. Add Trade object to the trades list. If order book ask was completely covered by this order, then boot it out of the heap and also mark it as inactive, otherwise simply subtract the quantity. Also if the incoming order couldn't fully execute, then push it on the BUY heap i.e. bids.
             while self.asks and quantity>0:
-                self._purge_inactive()
+                self._purge_inactive(self.asks)
+                if not self.asks:
+                    break
+                
+                best_ask_price, _, ask_order_id, ask_order_quantity, ask_order_client_id = self.asks[0]
+                
+                if price < best_ask_price:
+                    break
+                
+                
                 
