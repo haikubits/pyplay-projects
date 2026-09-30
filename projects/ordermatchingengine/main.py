@@ -42,6 +42,38 @@ class OrderMatchingEngine:
                 
                 if price < best_ask_price:
                     break
+                qty_filled = min(quantity, ask_order_quantity)
+                quantity -= qty_filled
+                trades.append(Trade(client_id, ask_order_client_id, best_ask_price, qty_filled))
+                if qty_filled == ask_order_quantity:
+                    heapq.heappop(self.asks)
+                    self.active_orders[ask_order_id] = False
+                else:
+                    self.asks[0][3] -= qty_filled
+            
+            # if no qualifying asks remain that can completely fill the order, push the remaining quantity on the bids heap
+            if quantity > 0:
+                heapq.heappush(self.bids, (-price, timestamp, order_id, quantity, client_id))
+        if side.upper == "SELL":
+            while self.bids and quantity > 0:
+                self._purge_inactive(self.bids)
+                if not self.bids:
+                    break
                 
+                best_bid_price, _, bid_order_id, bid_order_qty, bid_order_client_id = self.bids[0]
                 
+                if price > -best_bid_price:
+                    break
                 
+                qty_filled = min(quantity, bid_order_qty)
+                quantity -= qty_filled
+                trades.append(Trade(bid_order_client_id, client_id, -best_bid_price, qty_filled))
+                if qty_filled == bid_order_qty:
+                    heapq.heappop(self.bids)
+                    self.active_orders[bid_order_id] = False
+                else:
+                    self.bids[0][3] -= qty_filled
+            if quantity > 0:
+                heapq.heappush(self.asks, (price, timestamp, order_id, quantity, client_id))
+        
+        return order_id, trades
