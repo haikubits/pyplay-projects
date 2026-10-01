@@ -53,8 +53,8 @@ class OrderMatchingEngine:
             
             # if no qualifying asks remain that can completely fill the order, push the remaining quantity on the bids heap
             if quantity > 0:
-                heapq.heappush(self.bids, (-price, timestamp, order_id, quantity, client_id))
-        if side.upper == "SELL":
+                heapq.heappush(self.bids, (-price, self.order_sequence, order_id, quantity, client_id))
+        elif side.upper() == "SELL":
             while self.bids and quantity > 0:
                 self._purge_inactive(self.bids)
                 if not self.bids:
@@ -74,6 +74,41 @@ class OrderMatchingEngine:
                 else:
                     self.bids[0][3] -= qty_filled
             if quantity > 0:
-                heapq.heappush(self.asks, (price, timestamp, order_id, quantity, client_id))
+                heapq.heappush(self.asks, (price, self.order_sequence, order_id, quantity, client_id))
         
         return order_id, trades
+    
+    def cancel_order(self, order_id: int) -> bool:
+        if order_id in self.active_orders and self.active_orders[order_id]:
+            self.active_orders[order_id] = False
+            return True
+        return False
+
+# --- Toy Simulation Test Harness ---
+if __name__ == "__main__":
+    engine = OrderMatchingEngine()
+
+    print("Submitting Resting Limit Orders:")
+    # Ask: Sell 100 @ $10.50
+    id1, _ = engine.add_order("Trader_A", "SELL", 10.50, 100)
+    print(f"  Order {id1}: Trader_A rests SELL 100 @ $10.50")
+
+    # Ask: Sell 50 @ $10.45 (Better price than A)
+    id2, _ = engine.add_order("Trader_B", "SELL", 10.45, 50)
+    print(f"  Order {id2}: Trader_B rests SELL 50 @ $10.45")
+
+    # Cancel Trader_B's order to test tombstone handling
+    engine.cancel_order(id2)
+    print(f"  Order {id2} (Trader_B) cancelled.")
+
+    # Aggressive Bid: Buy 120 @ $10.55 (Crosses the spread)
+    print("\nSubmitting Aggressive Order Crossing Spread:")
+    id3, fills = engine.add_order("Trader_C", "BUY", 10.55, 120)
+    print(f"  Order {id3}: Trader_C attempts BUY 120 @ $10.55")
+
+    for trade in fills:
+        print(f"  >>> EXECUTION: {trade.quantity} shares @ ${trade.price:.2f} "
+              f"(Buyer: {trade.buyer_id}, Seller: {trade.seller_id})")
+
+    # Examine remaining book: Trader_C should have 20 shares remaining on Bid side
+    print(f"\nRemaining Resting Top Bid: {-engine.bids[0][0]} Qty: {engine.bids[0][3]} by {engine.bids[0][4]}")
