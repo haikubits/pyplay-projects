@@ -1,7 +1,7 @@
 import bisect
 
 # Lookup closest historical quote <= query_time
-timestamps = [100, 200, 300, 400]
+timestamps = [100, 180, 300, 400]
 query_time = 200
 
 idx_left = bisect.bisect_left(timestamps, query_time)
