@@ -1,8 +1,8 @@
 {
-  "title": "TimeBasedKeyValueStore",
+  "title": "TimeBasedKeyValueStore(Bisect)",
   "slug": "timebasedkeyvaluestore",
   "stdin": "",
   "argv": "",
   "createdAt": "2026-10-01T17:59:10.390Z",
-  "updatedAt": "2026-10-01T18:10:12.663Z"
+  "updatedAt": "2026-10-01T18:11:21.373Z"
 }
