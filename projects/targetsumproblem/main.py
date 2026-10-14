@@ -13,6 +13,6 @@ class Solution:
         dp[0] = 1
         for num in nums:
             for j in range(s, num - 1, -1):
-                # two choices, to include or exclude num
+                # two choices, to include or exclude num, excluding num doesn't change dp[j], only for including we add dp[j - num]. j>=num is ensured already coz of how the loop descends from s to num.
                 dp[j] += dp[j - num]
         return dp[s]
